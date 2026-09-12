@@ -1,0 +1,20 @@
+/* ================================================================
+ * 落地页独立样式 —— 仅放 Tailwind 无法表达的自定义类。
+ * globals.css 不可动；新增 CSS 全部在此文件。
+ * ================================================================ */
+
+/* Pipeline 水平滚动容器 —— 隐藏滚动条 */
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* 锚点平滑滚动 —— 尊重 prefers-reduced-motion */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}

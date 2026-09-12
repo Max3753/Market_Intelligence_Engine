@@ -1,0 +1,116 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ================================================================
+ * 设计 token —— 与 frontend/DESIGN.md §2 色板对齐。
+ * Tailwind 通过 tailwind.config.ts 引用这些变量，组件层用语义类名。
+ * ================================================================ */
+:root {
+  /* 表面 */
+  --bg-base: #0b1120;
+  --bg-base-2: #0f172a;
+  --bg-card: rgba(30, 41, 59, 0.6);
+  --bg-card-solid: #1e293b;
+  --bg-inset: #0f172a;
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.1);
+
+  /* 文本 */
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-faint: #475569;
+
+  /* 语义色 */
+  --accent: #38bdf8;
+  --success: #34d399;
+  --danger: #f87171;
+  --warning: #fbbf24;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+    text-rendering: optimizeLegibility;
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+  }
+
+  /* 数字对齐 —— 数据密集界面 */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 精致滚动条 */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.2);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.35);
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+}
+
+@layer utilities {
+  /* 骨架屏 shimmer —— loading 态 */
+  .skeleton {
+    @apply animate-pulse rounded-lg bg-white/5;
+  }
+}
+
+/* ================================================================
+ * 图表动画 —— 尊重 prefers-reduced-motion。
+ * 默认（no-preference）播放；用户偏好减少动画时保持静态终态。
+ * ================================================================ */
+@media (prefers-reduced-motion: no-preference) {
+  /* 雷达图描边绘制 —— stroke-dasharray 从 600 到 0 */
+  .radar-draw {
+    stroke-dasharray: 600;
+    stroke-dashoffset: 600;
+    animation: radar-draw 1s ease-out forwards;
+  }
+  @keyframes radar-draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  /* 环形图描边绘制 —— stroke-dasharray 从 0 到目标（CSS 变量驱动） */
+  .donut-draw {
+    stroke-dasharray: 0 600;
+    animation: donut-draw 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  @keyframes donut-draw {
+    to {
+      stroke-dasharray: var(--dash);
+    }
+  }
+
+  /* 条形图入场 —— width 0% → 目标 */
+  .bar-grow {
+    animation: bar-grow 0.8s ease-out forwards;
+  }
+  @keyframes bar-grow {
+    from {
+      width: 0%;
+    }
+  }
+}
