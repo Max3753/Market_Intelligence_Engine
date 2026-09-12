@@ -16,9 +16,12 @@ COPY backend/pyproject.toml backend/uv.lock* backend/README.md ./
 
 # Create venv and install CPU-only torch first — sentence-transformers pulls CUDA
 # torch (~2.5GB) from the default index; CPU build (~200MB) is enough for inference.
-# Aliyun pytorch-wheels mirror for CN servers (fallback: https://download.pytorch.org/whl/cpu)
+# SJTU pytorch-wheels mirror has torch CPU wheels (Aliyun mirror lacks torch);
+# deps resolve from Aliyun PyPI via --extra-index-url.
 RUN uv venv
-RUN uv pip install --python .venv/bin/python torch --index-url https://mirrors.aliyun.com/pytorch-wheels/cpu/
+RUN uv pip install --python .venv/bin/python torch \
+    --index-url https://mirror.sjtu.edu.cn/pytorch-wheels/cpu/ \
+    --extra-index-url https://mirrors.aliyun.com/pypi/simple/
 # Install remaining dependencies from lockfile, skipping torch (already installed)
 # UV_DEFAULT_INDEX: Aliyun PyPI mirror for CN servers
 ENV UV_DEFAULT_INDEX=https://mirrors.aliyun.com/pypi/simple/
