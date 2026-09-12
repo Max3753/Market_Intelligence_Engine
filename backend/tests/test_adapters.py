@@ -252,3 +252,36 @@ def test_github_discover_returns_issue_urls(monkeypatch):
     urls = asyncio.run(GithubAdapter().discover({"base_url": "https://github.com/test/repo"}))
     assert len(urls) == 2
     assert all(u.startswith("https://api.github.com/repos/test/repo/issues/") for u in urls)
+
+
+def test_github_proxy_resolution(monkeypatch):
+    """proxy 解析：缺省 → 默认本地代理；空字符串 → 禁用代理（直连）；显式 URL → 使用之。"""
+    captured: dict[str, Any] = {}
+
+    class _RecordingClient(httpx.AsyncClient):
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            captured["client_proxy"] = kwargs.get("proxy")
+            super().__init__(*args, **kwargs)
+
+    class _RecordingTransport(httpx.AsyncHTTPTransport):
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            captured["transport_proxy"] = kwargs.get("proxy")
+            super().__init__(*args, **kwargs)
+
+    monkeypatch.setattr(httpx, "AsyncClient", _RecordingClient)
+    monkeypatch.setattr(httpx, "AsyncHTTPTransport", _RecordingTransport)
+
+    # 缺省 → 默认本地代理（本地开发行为不变）
+    GithubAdapter()._get_client()
+    assert captured["client_proxy"] == "http://127.0.0.1:7890"
+    assert captured["transport_proxy"] == "http://127.0.0.1:7890"
+
+    # 空字符串 → 禁用代理（服务器直连）
+    GithubAdapter({"proxy": ""})._get_client()
+    assert captured["client_proxy"] is None
+    assert captured["transport_proxy"] is None
+
+    # 显式代理 URL → 使用之
+    GithubAdapter({"proxy": "http://proxy.example:8080"})._get_client()
+    assert captured["client_proxy"] == "http://proxy.example:8080"
+    assert captured["transport_proxy"] == "http://proxy.example:8080"

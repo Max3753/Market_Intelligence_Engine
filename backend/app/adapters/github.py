@@ -32,6 +32,10 @@ class GithubAdapter(SourceAdapter):
 
         连接池复用 + 连接级重试吸收代理瞬时抖动；token/proxy 可经源级
         config（"token"/"proxy"）覆盖，fallback 到 settings / 默认代理。
+        proxy 解析规则：
+        - config 缺省 "proxy" → 默认本地代理 PROXY（本地开发）
+        - config 显式传空字符串 "" → 禁用代理（服务器直连，如无本地代理的环境）
+        - config 传代理 URL → 使用之
         """
         if self._client is None:
             headers = {
@@ -41,7 +45,11 @@ class GithubAdapter(SourceAdapter):
             token = self._config.get("token") or settings.GITHUB_TOKEN
             if token:
                 headers["Authorization"] = f"Bearer {token}"
-            proxy = self._config.get("proxy") or PROXY
+            proxy = self._config.get("proxy")
+            if proxy is None:
+                proxy = PROXY
+            # 空字符串 → None（禁用代理）；httpx 对空串代理 URL 会抛 ValueError
+            proxy = proxy or None
 
             self._client = httpx.AsyncClient(
                 headers=headers,
