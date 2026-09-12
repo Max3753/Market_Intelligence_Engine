@@ -6,7 +6,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 # Install uv for fast dependency management
-RUN pip install --no-cache-dir uv
+# Aliyun PyPI mirror for CN servers (fallback: default PyPI)
+RUN pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ uv
 
 WORKDIR /app
 
@@ -15,9 +16,12 @@ COPY backend/pyproject.toml backend/uv.lock* backend/README.md ./
 
 # Create venv and install CPU-only torch first — sentence-transformers pulls CUDA
 # torch (~2.5GB) from the default index; CPU build (~200MB) is enough for inference.
+# Aliyun pytorch-wheels mirror for CN servers (fallback: https://download.pytorch.org/whl/cpu)
 RUN uv venv
-RUN uv pip install --python .venv/bin/python torch --index-url https://download.pytorch.org/whl/cpu
+RUN uv pip install --python .venv/bin/python torch --index-url https://mirrors.aliyun.com/pytorch-wheels/cpu/
 # Install remaining dependencies from lockfile, skipping torch (already installed)
+# UV_DEFAULT_INDEX: Aliyun PyPI mirror for CN servers
+ENV UV_DEFAULT_INDEX=https://mirrors.aliyun.com/pypi/simple/
 RUN uv sync --frozen --no-dev --no-install-package torch
 
 # Make venv binaries available on PATH

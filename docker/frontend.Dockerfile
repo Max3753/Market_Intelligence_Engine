@@ -13,7 +13,8 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 COPY frontend/package.json frontend/package-lock.json* ./
 
 # Install dependencies with clean install
-RUN npm ci
+# npmmirror registry for CN servers (fallback: default npm registry)
+RUN npm config set registry https://registry.npmmirror.com && npm ci
 
 # Copy application code
 COPY frontend/ ./
