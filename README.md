@@ -218,4 +218,4 @@ npm run dev
 
 ## License
 
-Private — Internal use only.
+MIT
