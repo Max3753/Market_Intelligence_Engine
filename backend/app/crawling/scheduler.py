@@ -82,3 +82,7 @@ class CrawlScheduler:
             await db.commit()
             await db.refresh(job)
         asyncio.create_task(process_job(job.id, source_id))
+
+    async def trigger_now(self, source_id: int) -> None:
+        """立即触发一次爬取（不等 interval 周期）。"""
+        await self._run_crawl(source_id)

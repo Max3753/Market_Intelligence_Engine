@@ -29,11 +29,19 @@ class Settings(BaseSettings):
     # --- Crawling ---
     CRAWL_INTERVAL_MINUTES: int = 60
 
+    # --- Automation ---
+    # 爬取成功后自动跑分析→聚类→评分流水线（false 则保持手动触发）
+    AUTO_PIPELINE: bool = True
+
     # --- Environment ---
     ENV: str = "development"
 
     # --- Github ---
     GITHUB_TOKEN: str = ""
+    # 启动播种：设置后自动创建该仓库的 GitHub 数据源（如 "microsoft/vscode"）
+    GITHUB_REPO: str = ""
+    # 播种的 GitHub 源使用的代理；空字符串 = 直连（服务器无本地代理时用）
+    GITHUB_PROXY: str = ""
 
     # --- Zhihu ---
     ZHIHU_COOKIES: str = ""

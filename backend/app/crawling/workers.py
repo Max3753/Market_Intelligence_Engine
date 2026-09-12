@@ -7,8 +7,10 @@ import httpx
 from sqlalchemy import select
 
 from app.adapters import get_adapter
+from app.config.settings import settings
 from app.db.session import async_session_factory
 from app.extraction.pipeline import check_semantic_duplicate, normalise
+from app.intelligence.analysis import auto_pipeline
 from app.models.document import Author, Document, RawDocument
 from app.models.source import CrawlJob, Source
 
@@ -215,4 +217,9 @@ async def process_job(job_id: int, source_id: int) -> None:
             if source is not None:
                 source.consecutive_failures += 1
                 await db.commit()
+
+        # 第8步：爬取成功且有新文档 → 触发自动分析流水线（分析→聚类→评分）
+        # 独立 session 后台任务；信号不足/无簇时内部正常跳过
+        if job.status == "completed" and job.items_stored > 0 and settings.AUTO_PIPELINE:
+            asyncio.create_task(auto_pipeline())
     

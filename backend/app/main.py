@@ -15,6 +15,7 @@ from app.api.routes import (
     crawl,
 )
 from app.crawling.scheduler import CrawlScheduler
+from app.crawling.seeding import seed_default_sources
 
 # 模块级单例：lifespan 内 start/stop，供测试与 reload 复用
 scheduler = CrawlScheduler()
@@ -22,8 +23,15 @@ scheduler = CrawlScheduler()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Start the crawl scheduler on boot, shut it down on exit."""
+    """Seed default sources on first boot, then start the crawl scheduler.
+
+    新播种的源立即触发一次初始爬取（不等第一个 interval 周期），
+    爬取成功后自动流水线（分析→聚类→评分）会随之运行。
+    """
+    seeded = await seed_default_sources()
     await scheduler.start()
+    for source in seeded:
+        await scheduler.trigger_now(source.id)
     yield
     await scheduler.stop()
 
