@@ -35,6 +35,7 @@ out/
 .env.*
 !.env.example
 !.env.local.example
+!deploy/.env.prod.example
 
 # ---------------------------------------------------------------------------
 # IDE
