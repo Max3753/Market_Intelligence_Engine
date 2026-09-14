@@ -15,8 +15,10 @@ COPY frontend/package.json frontend/package-lock.json* ./
 # Install dependencies with clean install
 # npmmirror registry for CN servers (fallback: default npm registry)
 # --mount=type=cache 持久化 npm 缓存（BuildKit），依赖未变时秒过
+# npm ci 无内置重试，网络抖动（ECONNRESET）时手动重试 3 次
 RUN --mount=type=cache,target=/root/.npm \
-    npm config set registry https://registry.npmmirror.com && npm ci
+    npm config set registry https://registry.npmmirror.com && \
+    (npm ci --no-audit --no-fund || npm ci --no-audit --no-fund || npm ci --no-audit --no-fund)
 
 # Copy application code
 COPY frontend/ ./
