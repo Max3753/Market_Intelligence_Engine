@@ -14,13 +14,18 @@ COPY frontend/package.json frontend/package-lock.json* ./
 
 # Install dependencies with clean install
 # npmmirror registry for CN servers (fallback: default npm registry)
-RUN npm config set registry https://registry.npmmirror.com && npm ci
+# --mount=type=cache 持久化 npm 缓存（BuildKit），依赖未变时秒过
+RUN --mount=type=cache,target=/root/.npm \
+    npm config set registry https://registry.npmmirror.com && npm ci
 
 # Copy application code
 COPY frontend/ ./
 
 # Build the application (standalone output — see next.config.ts)
-RUN npm run build
+# --mount=type=cache 持久化 .next/cache，增量构建只编译改动模块
+# NODE_OPTIONS 限制堆内存，防止小内存服务器 OOM/换页
+ENV NODE_OPTIONS=--max-old-space-size=1536
+RUN --mount=type=cache,target=/app/.next/cache npm run build
 
 # --- Production runner stage ---
 FROM node:22-alpine AS runner
