@@ -220,6 +220,11 @@ async def process_job(job_id: int, source_id: int) -> None:
 
         # 第8步：爬取成功且有新文档 → 触发自动分析流水线（分析→聚类→评分）
         # 独立 session 后台任务；信号不足/无簇时内部正常跳过
-        if job.status == "completed" and job.items_stored > 0 and settings.AUTO_PIPELINE:
+        if (
+            job is not None
+            and job.status == "completed"
+            and job.items_stored > 0
+            and settings.AUTO_PIPELINE
+        ):
             asyncio.create_task(auto_pipeline())
     
