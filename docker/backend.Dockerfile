@@ -24,10 +24,28 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --index-url https://mirror.sjtu.edu.cn/pytorch-wheels/cpu/ \
     --extra-index-url https://mirrors.aliyun.com/pypi/simple/
 # Install remaining dependencies from lockfile, skipping torch (already installed)
+# CPU torch 不需要 nvidia CUDA 包——lockfile 含 CUDA 依赖（开发者机器生成），
+# uv sync 装它们会下载 15GB+ nvidia 包且超时。--no-install-package 全部跳过。
 # UV_DEFAULT_INDEX: Aliyun PyPI mirror for CN servers
 ENV UV_DEFAULT_INDEX=https://mirrors.aliyun.com/pypi/simple/
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --no-install-package torch
+    uv sync --frozen --no-dev \
+    --no-install-package torch \
+    --no-install-package nvidia-cublas \
+    --no-install-package nvidia-cuda-cupti \
+    --no-install-package nvidia-cuda-nvrtc \
+    --no-install-package nvidia-cuda-runtime \
+    --no-install-package nvidia-cudnn-cu13 \
+    --no-install-package nvidia-cufft \
+    --no-install-package nvidia-cufile \
+    --no-install-package nvidia-curand \
+    --no-install-package nvidia-cusolver \
+    --no-install-package nvidia-cusparse \
+    --no-install-package nvidia-cusparselt-cu13 \
+    --no-install-package nvidia-nccl-cu13 \
+    --no-install-package nvidia-nvjitlink \
+    --no-install-package nvidia-nvshmem-cu13 \
+    --no-install-package nvidia-nvtx
 
 # Make venv binaries available on PATH
 ENV PATH="/app/.venv/bin:$PATH"
