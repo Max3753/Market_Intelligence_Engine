@@ -19,6 +19,30 @@
 
 ## 时间线
 
+### 2026-09-14 — 生产部署准备：GitHub 代理修复 + 自动播种 + Human-in-the-Loop 半自动
+
+**背景**：用户将项目部署到阿里云服务器（docker compose，nginx 8082:80），要求"后端有数据"。
+
+**GitHub 代理修复**（759aa9f）：
+- 根因：`github.py` 代理解析逻辑——config 缺省 `proxy` 时默认 `127.0.0.1:7890`，但服务器无本地代理 → ConnectError
+- 修复：`"proxy": ""` = 禁用代理直连；缺省 = 默认代理；显式 URL = 用之；httpx 0.28.1 对空串代理 URL 抛 ValueError，必须转 None
+- 测试：`test_adapters.py::test_github_proxy_resolution` 三分支覆盖
+
+**自动播种 + 自动流水线**（9336047，10 文件 +415/-222）：
+- 新建 `app/crawling/seeding.py`：`default_sources()` 纯函数 + `seed_default_sources()`（幂等，仅空表播种）；HN+V2EX（interval 60）恒播种，GitHub 仅当 `GITHUB_REPO` 设置（interval 1440，config 带 proxy）
+- 新建 `app/intelligence/analysis.py`：`LowValueSignal`、`analyze_one`、`analyze_unanalyzed`、`auto_pipeline`；`clustering.py` 新增 `rebuild_clusters/rescore_clusters`；documents/clusters 路由改薄
+- `scheduler.py` 新增 `trigger_now(source_id)`；`main.py` lifespan：播种 → 启动调度器 → 对新源立即爬取一次
+- `workers.py`：爬取成功且 `items_stored>0` 且 `AUTO_PIPELINE` → 后台 `auto_pipeline()`
+- 验证：pytest 18 passed / 2 skipped（既有 async 测试缺 pytest-asyncio）；LSP 干净；openapi 25 端点齐全
+
+**Human-in-the-Loop 半自动决策**（用户反对全自动按时触发，担心 API 额度滥用）：
+- `settings.py`：新增 `CRAWL_SCHEDULER_ENABLED=False`（周期调度默认关闭）；`AUTO_PIPELINE` 默认改 `False`（自动分析默认关闭）
+- `scheduler.py`：`start()` 中 `_recover_orphan_jobs()` 恒执行，`_register_active_sources()` 仅当 `CRAWL_SCHEDULER_ENABLED` 开启
+- 最终行为：部署即播种 + 初始爬取一次（免费 API、零 LLM）→ 原始文档自动入库；之后爬取/分析/聚类/评分全部 Console 手动触发
+- `deploy/.env.prod.example` / `deploy/README.md` 同步新配置说明
+
+**验证**：pytest 18 passed / 2 skipped；LSP 零诊断；git 已推送（759aa9f + 9336047 + 半自动调整）
+
 ### 2026-09-12 — 前端视觉打磨 + UX 优化 + winnat 永久修复 + 品牌区返回链接
 
 **前端视觉打磨与 UX 优化**（用户确认：落地页 + 仪表盘两者都打磨，UX 五项全选）：
@@ -653,7 +677,7 @@
 
 ### 待办 / 阻塞项
 - ⏳ **CrawlQueue Redis 队列**：enqueue/dequeue/get_status 为占位（NotImplementedError）；调度器已绕过它直接调用 process_job，功能正常，属架构简化
-- ⏳ **github 源代理**：需 `127.0.0.1:7890`，代理未开时 ConnectError（非代码问题）
+- ✅ **github 源代理**：已修复（759aa9f）——config `"proxy": ""` = 禁用代理直连，缺省 = 默认 `127.0.0.1:7890`；服务器无代理时留空即可
 - ⏳ **知乎 Cookie 时效**：z_c0 会过期（约 6 天），需定期刷新；已有 `scripts/configure_zhihu_cookie.py` 校验工具
 
 ### 决策记录
@@ -669,6 +693,7 @@
 | 2026-09-10 | pgvector 语义去重 | content_hash 精确去重之外的语义兜底层（REQ-004） |
 | 2026-09-12 | winnat 动态端口永久修复 | 保留段随机漂移反复封锁 8000/8100/8101/3000，一劳永逸 |
 | 2026-09-12 | 前端视觉打磨 + UX 优化 | 用户确认两者都打磨、UX 五项全选 |
+| 2026-09-14 | 生产部署半自动（Human-in-the-Loop） | 用户反对全自动按时触发（担心 API 额度滥用）；保留播种+初始爬取，关闭周期调度与自动分析 |
 
 ---
 
@@ -695,5 +720,6 @@
 | 2026-09-08 | 契约测试 13 passed + tsc 0 错误 + Playwright 实测 | ✅ 通过 |
 | 2026-09-10 | pytest 14 passed + 2 skipped + tsc 0 错误 + relink 三分支实测 | ✅ 通过 |
 | 2026-09-12 | tsc 0 错误 + next build 0 错误 + Playwright 双页面 QA（导航/锚点/数据/图表/移动端） | ✅ 通过 |
+| 2026-09-14 | pytest 18 passed + 2 skipped + LSP 零诊断 + openapi 25 端点 | ✅ 通过 |
 
-*最后更新：2026-09-12*
+*最后更新：2026-09-14*

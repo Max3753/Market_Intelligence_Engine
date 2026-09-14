@@ -6,6 +6,7 @@ from datetime import datetime
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy import select, update
 
+from app.config.settings import settings
 from app.crawling.workers import process_job
 from app.db.session import async_session_factory
 from app.models.source import CrawlJob, Source
@@ -19,11 +20,16 @@ class CrawlScheduler:
         self._running = False
 
     async def start(self) -> None:
-        """Start the scheduler, registering crawl jobs from active sources."""
+        """Start the scheduler, registering crawl jobs from active sources.
+
+        周期爬取受 CRAWL_SCHEDULER_ENABLED 控制（默认关闭 = Human-in-the-Loop）；
+        孤儿任务回收始终执行（进程崩溃后的状态兜底）。
+        """
         if self._running:
             return
         await self._recover_orphan_jobs()
-        await self._register_active_sources()
+        if settings.CRAWL_SCHEDULER_ENABLED:
+            await self._register_active_sources()
         self._scheduler.start()
         self._running = True
 

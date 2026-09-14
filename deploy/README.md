@@ -91,6 +91,9 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
 首次启动后端会自动：
 - 执行 `alembic upgrade head`（7 个迁移建表）
 - 下载 embedding 模型 all-MiniLM-L6-v2（约 90MB，缓存到 hf_cache 卷，仅一次）
+- 播种默认数据源（HN + V2EX，若设了 `GITHUB_REPO` 则含 GitHub）并**立即爬取一次**（免费 API，零 LLM 消耗）
+
+> **Human-in-the-Loop（默认半自动）**：周期调度与自动分析默认关闭（`CRAWL_SCHEDULER_ENABLED=false` / `AUTO_PIPELINE=false`）。部署后原始文档自动入库，但**分析/聚类/评分全部在 Console 手动触发**——LLM 额度完全由你控制。需要按时自动爬取时，在 `.env.prod` 设 `CRAWL_SCHEDULER_ENABLED=true` 后重建。
 
 ## A5. 验证
 

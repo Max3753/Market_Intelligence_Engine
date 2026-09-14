@@ -28,10 +28,13 @@ class Settings(BaseSettings):
 
     # --- Crawling ---
     CRAWL_INTERVAL_MINUTES: int = 60
+    # 周期调度器：false 时不按时间自动爬取（Human-in-the-Loop，手动触发）
+    CRAWL_SCHEDULER_ENABLED: bool = False
 
     # --- Automation ---
     # 爬取成功后自动跑分析→聚类→评分流水线（false 则保持手动触发）
-    AUTO_PIPELINE: bool = True
+    # 默认关闭：分析消耗 LLM 额度，由人决定何时触发
+    AUTO_PIPELINE: bool = False
 
     # --- Environment ---
     ENV: str = "development"
