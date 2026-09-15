@@ -19,17 +19,23 @@ COPY backend/pyproject.toml backend/uv.lock* backend/README.md ./
 # SJTU pytorch-wheels mirror has torch CPU wheels (Aliyun mirror lacks torch);
 # deps resolve from Aliyun PyPI via --extra-index-url.
 RUN uv venv
+# torch CPU wheel: Aliyun pytorch-wheels 优先（服务器同网络，快），SJTU 兜底
+# timeout 1200 = 20 分钟上限，超时即失败（不再无限挂起）
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install --python .venv/bin/python torch \
-    --index-url https://mirror.sjtu.edu.cn/pytorch-wheels/cpu/ \
+    timeout 1200 uv pip install --python .venv/bin/python torch \
+    --index-url https://mirrors.aliyun.com/pytorch-wheels/cpu/ \
+    --extra-index-url https://mirror.sjtu.edu.cn/pytorch-wheels/cpu/ \
     --extra-index-url https://mirrors.aliyun.com/pypi/simple/
 # Install remaining dependencies from lockfile, skipping torch (already installed)
 # CPU torch 不需要 nvidia CUDA 包——lockfile 含 CUDA 依赖（开发者机器生成），
 # uv sync 装它们会下载 15GB+ nvidia 包且超时。--no-install-package 全部跳过。
 # UV_DEFAULT_INDEX: Aliyun PyPI mirror for CN servers
-ENV UV_DEFAULT_INDEX=https://mirrors.aliyun.com/pypi/simple/
+# UV_HTTP_TIMEOUT=300: 单请求 5 分钟无响应即失败（不无限挂起）
+# timeout 600 = uv sync 10 分钟上限
+ENV UV_DEFAULT_INDEX=https://mirrors.aliyun.com/pypi/simple/ \
+    UV_HTTP_TIMEOUT=300
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev \
+    timeout 600 uv sync --frozen --no-dev \
     --no-install-package torch \
     --no-install-package nvidia-cublas \
     --no-install-package nvidia-cuda-cupti \
