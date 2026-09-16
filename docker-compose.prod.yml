@@ -26,7 +26,8 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - mie-net
+      mie-net:
+        ipv4_address: 172.19.0.10
 
   redis:
     image: redis:7-alpine
@@ -40,7 +41,8 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - mie-net
+      mie-net:
+        ipv4_address: 172.19.0.11
 
   backend:
     build:
@@ -51,9 +53,9 @@ services:
     env_file:
       - .env.prod
     environment:
-      # 容器内服务名连接，覆盖 .env.prod 中的 localhost 地址
-      DATABASE_URL: postgresql+asyncpg://mie:${POSTGRES_PASSWORD:-mie}@postgres:5432/mie
-      REDIS_URL: redis://redis:6379/0
+      # 静态 IP 直连（Docker DNS 损坏时的兜底，见 deploy/README.md）
+      DATABASE_URL: postgresql+asyncpg://mie:${POSTGRES_PASSWORD:-mie}@172.19.0.10:5432/mie
+      REDIS_URL: redis://172.19.0.11:6379/0
     volumes:
       - hf_cache:/data/hf_cache
     depends_on:
@@ -62,7 +64,8 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - mie-net
+      mie-net:
+        ipv4_address: 172.19.0.12
 
   frontend:
     build:
@@ -74,20 +77,22 @@ services:
     container_name: mie-prod-frontend
     restart: unless-stopped
     environment:
-      # 服务端组件直连 backend（Docker 内部网络），不依赖公网 IP/端口
-      API_URL_INTERNAL: http://backend:8000
+      # 服务端组件直连 backend（静态 IP，不依赖 Docker DNS）
+      API_URL_INTERNAL: http://172.19.0.12:8000
     depends_on:
       - backend
     networks:
-      - mie-net
+      mie-net:
+        ipv4_address: 172.19.0.13
 
   nginx:
     image: nginx:1.27-alpine
     container_name: mie-prod-nginx
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      # 端口可用 env 覆盖（80 被占用时 .env.prod 设 NGINX_HTTP_PORT=8082）
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
     volumes:
       - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - certbot_www:/var/www/certbot:ro
@@ -96,11 +101,15 @@ services:
       - frontend
       - backend
     networks:
-      - mie-net
+      mie-net:
+        ipv4_address: 172.19.0.14
 
 networks:
   mie-net:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.19.0.0/16
 
 volumes:
   postgres_data:
