@@ -74,8 +74,12 @@ nano .env.prod
 ```ini
 POSTGRES_PASSWORD=改成你自己的强密码
 LLM_API_KEY=sk-你的真实Key
-NEXT_PUBLIC_API_URL=http://服务器IP/api     # ← 用 IP，不是域名
+NEXT_PUBLIC_API_URL=http://服务器IP:8082/api   # ← 用 IP + 实际端口（80 被占用时改 8082）
 ```
+
+> **API 地址机制**：`NEXT_PUBLIC_API_URL` 是**构建时内联**的公网地址，供浏览器端调用；
+> 服务端组件（仪表盘等）自动走 `API_URL_INTERNAL=http://backend:8000`（compose 已注入，
+> Docker 内部网络直连，不依赖公网 IP/端口）。改 `NEXT_PUBLIC_API_URL` 后必须 `--build` 重建前端。
 
 > **国内服务器建议直接启用 HF 镜像**（阿里云直连 huggingface.co 基本被墙）：
 > 取消 `.env.prod` 中 `# HF_ENDPOINT=https://hf-mirror.com` 的注释。

@@ -10,9 +10,14 @@ import type {
   PaginatedResponse,
 } from "@/types";
 
-/** 统一 API 基址 —— 所有 fetch 都从这里取，禁止散落硬编码 */
+/** 统一 API 基址 —— 所有 fetch 都从这里取，禁止散落硬编码
+ *  服务端组件优先用 API_URL_INTERNAL（Docker 网络直连 backend，不依赖公网 IP/端口）；
+ *  客户端组件用 NEXT_PUBLIC_API_URL（浏览器可达的公网地址，构建时内联）。
+ */
 export const BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8106";
+  process.env.API_URL_INTERNAL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:8106";
 
 async function fetchJson<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`);

@@ -73,6 +73,9 @@ services:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
     container_name: mie-prod-frontend
     restart: unless-stopped
+    environment:
+      # 服务端组件直连 backend（Docker 内部网络），不依赖公网 IP/端口
+      API_URL_INTERNAL: http://backend:8000
     depends_on:
       - backend
     networks:
