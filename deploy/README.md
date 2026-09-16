@@ -73,9 +73,12 @@ nano .env.prod
 
 ```ini
 POSTGRES_PASSWORD=改成你自己的强密码
+POSTGRES_PASSWORD_URLENCODED=密码的URL编码版   # 密码含 @ : / % 等特殊字符时必须编码（如 MyPass@123 → MyPass%40123）
 LLM_API_KEY=sk-你的真实Key
 NEXT_PUBLIC_API_URL=http://服务器IP:8082/api   # ← 用 IP + 实际端口（80 被占用时改 8082）
 ```
+
+> **密码 URL 编码**：backend 通过连接串访问数据库，密码里的 `@`、`:`、`/`、`%` 会被 URL 解析器误读（如 `MyPass@123` 会把 host 截断成 `123@...` 导致 `socket.gaierror` 启动失败）。必须把特殊字符编码后填入 `POSTGRES_PASSWORD_URLENCODED`（`@`→`%40`、`:`→`%3A`、`/`→`%2F`、`%`→`%25`）。
 
 > **API 地址机制**：`NEXT_PUBLIC_API_URL` 是**构建时内联**的公网地址，供浏览器端调用；
 > 服务端组件（仪表盘等）自动走 `API_URL_INTERNAL=http://backend:8000`（compose 已注入，
@@ -191,6 +194,7 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
 
 | 问题 | 处理 |
 |---|---|
+| 后端启动失败：`socket.gaierror: Name or service not known` | 密码含 `@` 等特殊字符未 URL 编码 → 连接串 host 被截断。在 `.env.prod` 设 `POSTGRES_PASSWORD_URLENCODED`（如 `MyPass@123` → `MyPass%40123`）后重建 backend |
 | 后端启动失败：模型下载超时 | 阿里云直连 huggingface.co 被墙 → `.env.prod` 启用 `HF_ENDPOINT=https://hf-mirror.com` 后重建 |
 | 后端启动失败：torch 版本冲突 | 移除 `backend.Dockerfile` 中 CPU torch 优化（`--no-install-package torch`），回退默认安装 |
 | 80/443 被已有项目占用 | 修改 `docker-compose.prod.yml` 中 nginx 的 ports 映射（如 `8080:80`），或接入已有反代 |

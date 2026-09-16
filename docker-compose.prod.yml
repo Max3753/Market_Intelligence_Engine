@@ -53,8 +53,10 @@ services:
     env_file:
       - .env.prod
     environment:
-      # 静态 IP 直连（Docker DNS 损坏时的兜底，见 deploy/README.md）
-      DATABASE_URL: postgresql+asyncpg://mie:${POSTGRES_PASSWORD:-mie}@172.19.0.10:5432/mie
+      # 静态 IP 直连（见 deploy/README.md）
+      # POSTGRES_PASSWORD_URLENCODED：密码含 @ : / % 等特殊字符时必须 URL 编码
+      # （如 MyPass@123 → MyPass%40123），否则 URL 解析会把 host 截断导致连接失败
+      DATABASE_URL: postgresql+asyncpg://mie:${POSTGRES_PASSWORD_URLENCODED:-mie}@172.19.0.10:5432/mie
       REDIS_URL: redis://172.19.0.11:6379/0
     volumes:
       - hf_cache:/data/hf_cache

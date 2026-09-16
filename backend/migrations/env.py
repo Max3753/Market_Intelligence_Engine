@@ -16,8 +16,12 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Allow DATABASE_URL env var to override alembic.ini (Docker/production)
+# configparser 把 % 当插值语法：密码含 %（或 URL 编码如 %40）时必须转义为 %%
+# （get_main_option 读回时 %% 会还原为 %，SQLAlchemy 拿到的是正确 URL）
 if os.environ.get("DATABASE_URL"):
-    config.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"])
+    config.set_main_option(
+        "sqlalchemy.url", os.environ["DATABASE_URL"].replace("%", "%%")
+    )
 
 # Target metadata for autogenerate
 target_metadata = Base.metadata
